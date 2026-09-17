@@ -1,0 +1,6 @@
+{
+  "name": "کیف کارت امن",
+  "description": "مدیریت و نگهداری اطلاعات کارت‌های بانکی با رمزنگاری پیشرفته و ورود با اثر انگشت بدون نیاز به اینترنت",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
