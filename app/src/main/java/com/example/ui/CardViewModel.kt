@@ -269,11 +269,13 @@ class CardViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
 
-            // Seed only once if empty
-            // Check if any card exists
-            val existing = repository.getCardById(1L)
-            if (existing == null) {
-                repository.insertAll(initialCards)
+            // Seed only once on the first app launch if database is completely empty
+            if (!securityPrefs.hasInitialSetupDone) {
+                val count = repository.getCardCount()
+                if (count == 0) {
+                    repository.insertAll(initialCards)
+                }
+                securityPrefs.hasInitialSetupDone = true
             }
         }
     }

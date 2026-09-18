@@ -4,6 +4,10 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -117,6 +121,62 @@ fun HomeScreen(
     var editingCard by remember { mutableStateOf<BankCard?>(null) }
     var cardToDelete by remember { mutableStateOf<BankCard?>(null) }
     var showSecuritySettingsDialog by remember { mutableStateOf(false) }
+
+    // File selection state for secure backup
+    var pendingExportData by remember { mutableStateOf<String?>(null) }
+    var importedFileContent by remember { mutableStateOf<String?>(null) }
+    var importedFileName by remember { mutableStateOf<String?>(null) }
+
+    // System file picker for creating/saving secure backup file locally
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri: Uri? ->
+        if (uri != null && pendingExportData != null) {
+            coroutineScope.launch {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.write(pendingExportData!!.toByteArray(Charsets.UTF_8))
+                        outputStream.flush()
+                    }
+                    pendingExportData = null
+                    snackbarHostState.showSnackbar("فایل پشتیبان با موفقیت و محرمانگی کامل در گوشی ذخیره شد")
+                } catch (e: Exception) {
+                    snackbarHostState.showSnackbar("خطا در ذخیره فایل: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    // System file picker for importing secure backup file from device storage
+    val openDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            coroutineScope.launch {
+                try {
+                    var displayName = "فایل پشتیبان"
+                    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (nameIndex != -1 && cursor.moveToFirst()) {
+                            displayName = cursor.getString(nameIndex)
+                        }
+                    }
+                    val content = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        inputStream.bufferedReader(Charsets.UTF_8).readText()
+                    }
+                    if (!content.isNullOrBlank()) {
+                        importedFileContent = content
+                        importedFileName = displayName
+                        snackbarHostState.showSnackbar("فایل $displayName آماده رمزگشایی است")
+                    } else {
+                        snackbarHostState.showSnackbar("فایل انتخاب شده خالی است")
+                    }
+                } catch (e: Exception) {
+                    snackbarHostState.showSnackbar("خطا در خواندن فایل پشتیبان: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
 
     val categories = listOf("همه", "اصلی", "کاری", "خرید", "خانواده", "پس‌انداز", "سایر")
 
@@ -494,7 +554,11 @@ fun HomeScreen(
         SecuritySettingsDialog(
             securityPrefs = viewModel.securityPrefs,
             isBiometricAvailable = isBiometricAvailable,
-            onDismiss = { showSecuritySettingsDialog = false },
+            onDismiss = {
+                showSecuritySettingsDialog = false
+                importedFileContent = null
+                importedFileName = null
+            },
             onSaveMode = { mode, newPin ->
                 viewModel.updateSecuritySettings(mode, newPin)
                 showSecuritySettingsDialog = false
@@ -506,18 +570,22 @@ fun HomeScreen(
                 coroutineScope.launch {
                     try {
                         val encryptedBackup = viewModel.exportEncryptedBackup(password)
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, encryptedBackup)
-                            type = "text/plain"
+                        pendingExportData = encryptedBackup
+                        // Also automatically save a backup to internal private app storage as an extra safety layer
+                        val internalFileName = "cards_backup_${System.currentTimeMillis()}.enc"
+                        context.openFileOutput(internalFileName, Context.MODE_PRIVATE).use { output ->
+                            output.write(encryptedBackup.toByteArray(Charsets.UTF_8))
                         }
-                        val shareIntent = Intent.createChooser(sendIntent, "ذخیره یا ارسال پشتیبان رمزگذاری شده")
-                        context.startActivity(shareIntent)
-                        snackbarHostState.showSnackbar("خروجی رمزدار با موفقیت ایجاد شد")
+                        // Launch system file saver so user chooses their desired secure local storage location
+                        val defaultFileName = "bank_cards_backup_${System.currentTimeMillis()}.enc"
+                        createDocumentLauncher.launch(defaultFileName)
                     } catch (e: Exception) {
-                        snackbarHostState.showSnackbar("خطا در ایجاد پشتیبان: ${e.localizedMessage}")
+                        snackbarHostState.showSnackbar("خطا در آماده‌سازی پشتیبان: ${e.localizedMessage}")
                     }
                 }
+            },
+            onSelectBackupFile = {
+                openDocumentLauncher.launch(arrayOf("*/*"))
             },
             onImportBackup = { backupJson, password ->
                 coroutineScope.launch {
@@ -525,13 +593,17 @@ fun HomeScreen(
                     if (result.isSuccess) {
                         val count = result.getOrNull() ?: 0
                         showSecuritySettingsDialog = false
+                        importedFileContent = null
+                        importedFileName = null
                         snackbarHostState.showSnackbar("$count کارت با موفقیت بازیابی شد")
                     } else {
                         val err = result.exceptionOrNull()?.localizedMessage ?: "رمز عبور اشتباه است یا فایل دستکاری شده"
                         snackbarHostState.showSnackbar("خطا در بازیابی: $err")
                     }
                 }
-            }
+            },
+            importedFileContent = importedFileContent,
+            importedFileName = importedFileName
         )
     }
 }

@@ -22,11 +22,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Visibility
@@ -72,7 +75,10 @@ fun SecuritySettingsDialog(
     onDismiss: () -> Unit,
     onSaveMode: (AuthMode, String?) -> Unit,
     onExportBackup: (password: String) -> Unit,
-    onImportBackup: (backupJson: String, password: String) -> Unit
+    onSelectBackupFile: () -> Unit,
+    onImportBackup: (backupJson: String, password: String) -> Unit,
+    importedFileContent: String? = null,
+    importedFileName: String? = null
 ) {
     var selectedTab by remember { mutableStateOf(0) } // 0 = امنیت ورود, 1 = پشتیبان‌گیری
     var currentMode by remember { mutableStateOf(securityPrefs.authMode) }
@@ -86,6 +92,13 @@ fun SecuritySettingsDialog(
     var importPassword by remember { mutableStateOf("") }
     var importDataText by remember { mutableStateOf("") }
     var backupMessage by remember { mutableStateOf<String?>(null) }
+
+    // Sync importedFileContent if picked via system picker
+    androidx.compose.runtime.LaunchedEffect(importedFileContent) {
+        if (!importedFileContent.isNullOrBlank()) {
+            importDataText = importedFileContent
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -271,10 +284,16 @@ fun SecuritySettingsDialog(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Download, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Icon(Icons.Default.Save, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("خروجی گرفتن رمزنگاری شده", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("ذخیره امن فایل پشتیبان در گوشی", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "فایل با پسوند .enc و به شکل کاملاً رمزگذاری شده بدون ارسال به اینترنت یا سایر برنامه‌ها، در حافظه امن گوشی ذخیره می‌شود.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Spacer(modifier = Modifier.height(8.dp))
                             OutlinedTextField(
                                 value = exportPassword,
@@ -296,7 +315,9 @@ fun SecuritySettingsDialog(
                                 },
                                 modifier = Modifier.fillMaxWidth().testTag("start_export_button")
                             ) {
-                                Text("ایجاد فایل پشتیبان رمزدار")
+                                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("ذخیره محلی فایل رمزدار (.enc)")
                             }
                         }
                     }
@@ -313,17 +334,30 @@ fun SecuritySettingsDialog(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Upload, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("بازیابی اطلاعات از فایل رمزدار", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("بازیابی اطلاعات از فایل پشتیبان", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = importDataText,
-                                onValueChange = { importDataText = it },
-                                label = { Text("متن یا محتوای فایل پشتیبان (.enc / json)") },
-                                maxLines = 3,
-                                modifier = Modifier.fillMaxWidth().testTag("import_data_input")
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedButton(
+                                onClick = onSelectBackupFile,
+                                modifier = Modifier.fillMaxWidth().testTag("select_backup_file_button")
+                            ) {
+                                Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(if (importedFileName != null) "فایل انتخاب شده: $importedFileName" else "انتخاب فایل پشتیبان از حافظه (.enc)")
+                            }
+                            if (importedFileName != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "فایل $importedFileName با موفقیت بارگذاری شد",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                             OutlinedTextField(
                                 value = importPassword,
                                 onValueChange = { importPassword = it },
@@ -337,7 +371,7 @@ fun SecuritySettingsDialog(
                             Button(
                                 onClick = {
                                     if (importDataText.isBlank() || importPassword.isBlank()) {
-                                        backupMessage = "لطفاً محتوا و رمز عبور را وارد کنید"
+                                        backupMessage = "لطفاً ابتدا فایل پشتیبان را انتخاب کرده و رمز عبور را وارد کنید"
                                     } else {
                                         onImportBackup(importDataText.trim(), importPassword)
                                     }

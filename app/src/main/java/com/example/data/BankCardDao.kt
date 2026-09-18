@@ -19,6 +19,9 @@ interface BankCardDao {
     @Query("SELECT * FROM bank_cards WHERE id = :id LIMIT 1")
     suspend fun getCardById(id: Long): BankCard?
 
+    @Query("SELECT COUNT(*) FROM bank_cards")
+    suspend fun getCardCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCard(card: BankCard): Long
 

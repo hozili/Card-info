@@ -11,6 +11,8 @@ class CardRepository(private val bankCardDao: BankCardDao) {
 
     suspend fun getCardById(id: Long): BankCard? = bankCardDao.getCardById(id)
 
+    suspend fun getCardCount(): Int = bankCardDao.getCardCount()
+
     suspend fun insertCard(card: BankCard): Long = bankCardDao.insertCard(card)
 
     suspend fun updateCard(card: BankCard) = bankCardDao.updateCard(card)

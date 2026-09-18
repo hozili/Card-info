@@ -19,7 +19,12 @@ class SecurityPreferences(context: Context) {
         private const val KEY_PIN_SALT = "pin_salt"
         private const val KEY_PIN_HASH = "pin_hash"
         private const val KEY_AUTO_LOCK = "auto_lock"
+        private const val KEY_INITIAL_SETUP_DONE = "initial_setup_done"
     }
+
+    var hasInitialSetupDone: Boolean
+        get() = prefs.getBoolean(KEY_INITIAL_SETUP_DONE, false)
+        set(value) = prefs.edit().putBoolean(KEY_INITIAL_SETUP_DONE, value).apply()
 
     var authMode: AuthMode
         get() {
