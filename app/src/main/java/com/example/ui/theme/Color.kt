@@ -12,3 +12,8 @@ val LightSurface = Color(0xFFF8FAFC)
 
 val GoldAccent = Color(0xFFF59E0B)
 
+// Refined Light & Dark surface colors for modern elegance
+val SoftSurfaceVariant = Color(0xFFF1F5F9)
+val CardBorderSubtle = Color(0xFFE2E8F0)
+val DarkSurfaceVariant = Color(0xFF243248)
+

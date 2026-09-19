@@ -17,7 +17,8 @@ private val DarkColorScheme =
     secondary = GoldAccent,
     tertiary = EmeraldTertiary,
     background = DarkNavy,
-    surface = DarkNavySurface
+    surface = DarkNavySurface,
+    surfaceVariant = DarkSurfaceVariant
   )
 
 private val LightColorScheme =
@@ -26,7 +27,8 @@ private val LightColorScheme =
     secondary = EmeraldSecondary,
     tertiary = GoldAccent,
     background = LightSurface,
-    surface = Color.White
+    surface = Color.White,
+    surfaceVariant = SoftSurfaceVariant
   )
 
 @Composable

@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreditCard
@@ -287,8 +288,11 @@ fun HomeScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.shadow(1.dp)
             )
         },
         floatingActionButton = {
@@ -310,36 +314,50 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Main Two-Section Tabs: "کارت‌های شخصی من" vs "کارت‌های دیگران"
+            // Main Two-Section Tabs: "کارت‌های شخصی من" vs "کارت‌های دیگران" (Modern Pill Bar)
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 1.dp
             ) {
                 TabRow(
                     selectedTabIndex = if (isPersonalTab) 0 else 1,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    indicator = {},
+                    divider = {},
+                    modifier = Modifier.padding(4.dp)
                 ) {
                     Tab(
                         selected = isPersonalTab,
                         onClick = { viewModel.onTabChanged(true) },
-                        modifier = Modifier.testTag("my_cards_tab")
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (isPersonalTab) MaterialTheme.colorScheme.surface
+                                else Color.Transparent
+                            )
+                            .testTag("my_cards_tab")
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 12.dp)
+                            modifier = Modifier.padding(vertical = 10.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CreditCard,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(17.dp),
+                                tint = if (isPersonalTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "کارت‌های من ($totalPersonalCount)",
-                                fontWeight = if (isPersonalTab) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 13.sp
+                                fontWeight = if (isPersonalTab) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp,
+                                color = if (isPersonalTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -347,57 +365,72 @@ fun HomeScreen(
                     Tab(
                         selected = !isPersonalTab,
                         onClick = { viewModel.onTabChanged(false) },
-                        modifier = Modifier.testTag("others_cards_tab")
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (!isPersonalTab) MaterialTheme.colorScheme.surface
+                                else Color.Transparent
+                            )
+                            .testTag("others_cards_tab")
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 12.dp)
+                            modifier = Modifier.padding(vertical = 10.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(17.dp),
+                                tint = if (!isPersonalTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "کارت‌های دیگران ($totalOthersCount)",
-                                fontWeight = if (!isPersonalTab) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 13.sp
+                                fontWeight = if (!isPersonalTab) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp,
+                                color = if (!isPersonalTab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
             }
 
-            // Quick Search Bar
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
+            // Quick Search Bar (reduced width & centered for elegant layout)
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
             ) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.onSearchQueryChanged(it) },
-                    placeholder = { Text("جستجوی سریع بر اساس نام، بانک، شماره کارت یا شبا...") },
+                    placeholder = {
+                        Text(
+                            text = "جستجوی سریع",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Outlined.Search,
                             contentDescription = "جستجو",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
                         )
                     },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                                Text("✕", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text("✕", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     },
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(24.dp),
                     singleLine = true,
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth(0.92f)
                         .testTag("search_card_input")
                 )
             }

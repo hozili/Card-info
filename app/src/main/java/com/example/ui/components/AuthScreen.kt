@@ -22,10 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,18 +65,24 @@ fun AuthScreen(
 ) {
     var enteredPin by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    // User can switch to PIN mode as fallback if biometric fails or isn't desired
+    var forceUsePinFallback by remember { mutableStateOf(false) }
 
-    // If Biometric or Two-factor (step 2), trigger prompt automatically on launch
-    LaunchedEffect(authMode, isTwoFactorPinPassed) {
-        if (authMode == AuthMode.BIOMETRIC) {
-            onRequestBiometric()
-        } else if (authMode == AuthMode.TWO_FACTOR && isTwoFactorPinPassed) {
-            onRequestBiometric()
+    // If Biometric or Two-factor (step 2), trigger prompt automatically on launch unless user chose PIN fallback
+    LaunchedEffect(authMode, isTwoFactorPinPassed, forceUsePinFallback) {
+        if (!forceUsePinFallback) {
+            if (authMode == AuthMode.BIOMETRIC) {
+                onRequestBiometric()
+            } else if (authMode == AuthMode.TWO_FACTOR && isTwoFactorPinPassed) {
+                onRequestBiometric()
+            }
         }
     }
 
-    val isWaitingForBiometric = (authMode == AuthMode.BIOMETRIC) ||
+    val isWaitingForBiometric = !forceUsePinFallback && (
+            (authMode == AuthMode.BIOMETRIC) ||
             (authMode == AuthMode.TWO_FACTOR && isTwoFactorPinPassed)
+    )
 
     Box(
         modifier = modifier
@@ -234,7 +242,10 @@ fun AuthScreen(
                                     "bio" -> {
                                         if (isBiometricAvailable && authMode != AuthMode.PIN) {
                                             Surface(
-                                                onClick = onRequestBiometric,
+                                                onClick = {
+                                                    forceUsePinFallback = false
+                                                    onRequestBiometric()
+                                                },
                                                 shape = CircleShape,
                                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                                 modifier = Modifier.size(68.dp).testTag("keypad_bio")
@@ -321,6 +332,23 @@ fun AuthScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text("اسکن مجدد اثر انگشت")
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Fallback to PIN option
+                    OutlinedButton(
+                        onClick = { forceUsePinFallback = true },
+                        modifier = Modifier.testTag("switch_to_pin_fallback_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Key,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("ورود با کد پین", color = Color.White)
                     }
                 }
             }

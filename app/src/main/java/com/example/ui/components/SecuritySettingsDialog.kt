@@ -212,14 +212,26 @@ fun SecuritySettingsDialog(
                         onClick = { currentMode = AuthMode.TWO_FACTOR }
                     )
 
-                    // If PIN or 2FA selected, show PIN setup fields
-                    if (currentMode == AuthMode.PIN || currentMode == AuthMode.TWO_FACTOR) {
+                    // If PIN, BIOMETRIC, or 2FA selected, show PIN setup fields
+                    if (currentMode == AuthMode.PIN || currentMode == AuthMode.BIOMETRIC || currentMode == AuthMode.TWO_FACTOR) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = if (securityPrefs.isPinSet()) "تغییر یا تایید کد پین:" else "تنظیم کد پین جدید:",
+                            text = when {
+                                currentMode == AuthMode.BIOMETRIC -> if (securityPrefs.isPinSet()) "پین پشتیبان (جهت مواقع عدم کارکرد اثر انگشت):" else "تنظیم پین کد الزامی به عنوان پشتیبان اثر انگشت:"
+                                securityPrefs.isPinSet() -> "تغییر یا تایید کد پین:"
+                                else -> "تنظیم کد پین جدید:"
+                            },
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
+                        if (currentMode == AuthMode.BIOMETRIC) {
+                            Text(
+                                text = "در صورت بروز مشکل در حسگر اثر انگشت، می‌توانید با این پین وارد شوید.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
 
                         if (pinErrorMessage != null) {
                             Text(
@@ -397,9 +409,12 @@ fun SecuritySettingsDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (currentMode == AuthMode.PIN || currentMode == AuthMode.TWO_FACTOR) {
+                    if (currentMode == AuthMode.PIN || currentMode == AuthMode.BIOMETRIC || currentMode == AuthMode.TWO_FACTOR) {
                         if (!securityPrefs.isPinSet() && newPin.isEmpty()) {
-                            pinErrorMessage = "لطفاً یک کد پین تعیین کنید"
+                            pinErrorMessage = if (currentMode == AuthMode.BIOMETRIC)
+                                "تنظیم پین کد به عنوان پشتیبان اثر انگشت الزامی است"
+                            else
+                                "لطفاً یک کد پین تعیین کنید"
                             return@Button
                         }
                         if (newPin.isNotEmpty()) {
