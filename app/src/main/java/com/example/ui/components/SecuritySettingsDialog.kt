@@ -78,7 +78,8 @@ fun SecuritySettingsDialog(
     onSelectBackupFile: () -> Unit,
     onImportBackup: (backupJson: String, password: String) -> Unit,
     importedFileContent: String? = null,
-    importedFileName: String? = null
+    importedFileName: String? = null,
+    backupErrorMessage: String? = null
 ) {
     var selectedTab by remember { mutableStateOf(0) } // 0 = امنیت ورود, 1 = پشتیبان‌گیری
     var currentMode by remember { mutableStateOf(securityPrefs.authMode) }
@@ -93,10 +94,18 @@ fun SecuritySettingsDialog(
     var importDataText by remember { mutableStateOf("") }
     var backupMessage by remember { mutableStateOf<String?>(null) }
 
+    // Update backupMessage when external error occurs
+    androidx.compose.runtime.LaunchedEffect(backupErrorMessage) {
+        if (!backupErrorMessage.isNullOrBlank()) {
+            backupMessage = backupErrorMessage
+        }
+    }
+
     // Sync importedFileContent if picked via system picker
     androidx.compose.runtime.LaunchedEffect(importedFileContent) {
         if (!importedFileContent.isNullOrBlank()) {
             importDataText = importedFileContent
+            backupMessage = null
         }
     }
 

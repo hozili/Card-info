@@ -153,17 +153,7 @@ class CardViewModel(application: Application) : AndroidViewModel(application) {
      * Export all cards into an encrypted string container using user-chosen password
      */
     suspend fun exportEncryptedBackup(passphrase: String): String {
-        val currentCards = repository.getCardsByType(true) // will read all
-        val allCardsList = mutableListOf<BankCard>()
-        val job = viewModelScope.launch {
-            repository.allCards.collect {
-                allCardsList.clear()
-                allCardsList.addAll(it)
-            }
-        }
-        // Yield shortly to ensure list is populated
-        kotlinx.coroutines.delay(100)
-        job.cancel()
+        val allCardsList = repository.getAllCardsList()
 
         val jsonArray = JSONArray()
         for (c in allCardsList) {
@@ -192,7 +182,8 @@ class CardViewModel(application: Application) : AndroidViewModel(application) {
      */
     suspend fun importEncryptedBackup(encryptedContent: String, passphrase: String): Result<Int> {
         return try {
-            val decryptedJson = CryptoManager.decryptBackupPayload(encryptedContent, passphrase.toCharArray())
+            val cleanContent = encryptedContent.trim()
+            val decryptedJson = CryptoManager.decryptBackupPayload(cleanContent, passphrase.toCharArray())
             val jsonArray = JSONArray(decryptedJson)
             val restoredCards = mutableListOf<BankCard>()
 

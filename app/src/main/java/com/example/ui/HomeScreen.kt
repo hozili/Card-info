@@ -127,6 +127,7 @@ fun HomeScreen(
     var pendingExportData by remember { mutableStateOf<String?>(null) }
     var importedFileContent by remember { mutableStateOf<String?>(null) }
     var importedFileName by remember { mutableStateOf<String?>(null) }
+    var backupErrorMessage by remember { mutableStateOf<String?>(null) }
 
     // System file picker for creating/saving secure backup file locally
     val createDocumentLauncher = rememberLauncherForActivityResult(
@@ -591,6 +592,7 @@ fun HomeScreen(
                 showSecuritySettingsDialog = false
                 importedFileContent = null
                 importedFileName = null
+                backupErrorMessage = null
             },
             onSaveMode = { mode, newPin ->
                 viewModel.updateSecuritySettings(mode, newPin)
@@ -602,6 +604,7 @@ fun HomeScreen(
             onExportBackup = { password ->
                 coroutineScope.launch {
                     try {
+                        backupErrorMessage = null
                         val encryptedBackup = viewModel.exportEncryptedBackup(password)
                         pendingExportData = encryptedBackup
                         // Also automatically save a backup to internal private app storage as an extra safety layer
@@ -613,30 +616,37 @@ fun HomeScreen(
                         val defaultFileName = "bank_cards_backup_${System.currentTimeMillis()}.enc"
                         createDocumentLauncher.launch(defaultFileName)
                     } catch (e: Exception) {
-                        snackbarHostState.showSnackbar("خطا در آماده‌سازی پشتیبان: ${e.localizedMessage}")
+                        val errMsg = "خطا در آماده‌سازی پشتیبان: ${e.localizedMessage}"
+                        backupErrorMessage = errMsg
+                        snackbarHostState.showSnackbar(errMsg)
                     }
                 }
             },
             onSelectBackupFile = {
+                backupErrorMessage = null
                 openDocumentLauncher.launch(arrayOf("*/*"))
             },
             onImportBackup = { backupJson, password ->
                 coroutineScope.launch {
+                    backupErrorMessage = null
                     val result = viewModel.importEncryptedBackup(backupJson, password)
                     if (result.isSuccess) {
                         val count = result.getOrNull() ?: 0
                         showSecuritySettingsDialog = false
                         importedFileContent = null
                         importedFileName = null
+                        backupErrorMessage = null
                         snackbarHostState.showSnackbar("$count کارت با موفقیت بازیابی شد")
                     } else {
                         val err = result.exceptionOrNull()?.localizedMessage ?: "رمز عبور اشتباه است یا فایل دستکاری شده"
+                        backupErrorMessage = "خطا در بازیابی: $err"
                         snackbarHostState.showSnackbar("خطا در بازیابی: $err")
                     }
                 }
             },
             importedFileContent = importedFileContent,
-            importedFileName = importedFileName
+            importedFileName = importedFileName,
+            backupErrorMessage = backupErrorMessage
         )
     }
 }

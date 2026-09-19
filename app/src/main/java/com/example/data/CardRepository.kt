@@ -6,6 +6,8 @@ class CardRepository(private val bankCardDao: BankCardDao) {
 
     val allCards: Flow<List<BankCard>> = bankCardDao.getAllCards()
 
+    suspend fun getAllCardsList(): List<BankCard> = bankCardDao.getAllCardsList()
+
     fun getCardsByType(isPersonal: Boolean): Flow<List<BankCard>> =
         bankCardDao.getCardsByType(isPersonal)
 

@@ -328,9 +328,10 @@ fun BankCardItem(
                     .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
                 // Quick Copy Buttons Row (شماره کارت، شماره حساب، شماره شبا)
+                // Equal width and balanced distribution
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Copy Card Number Button
@@ -338,6 +339,7 @@ fun BankCardItem(
                         label = "شماره کارت",
                         value = card.cardNumber,
                         testTag = "copy_card_number_${card.id}",
+                        modifier = Modifier.weight(1f),
                         onClick = { onCopy("شماره کارت", card.cardNumber) }
                     )
 
@@ -347,6 +349,7 @@ fun BankCardItem(
                             label = "شماره حساب",
                             value = card.accountNumber,
                             testTag = "copy_account_number_${card.id}",
+                            modifier = Modifier.weight(1f),
                             onClick = { onCopy("شماره حساب", card.accountNumber) }
                         )
                     }
@@ -357,6 +360,7 @@ fun BankCardItem(
                             label = "شماره شبا",
                             value = card.iban,
                             testTag = "copy_iban_${card.id}",
+                            modifier = Modifier.weight(1f),
                             onClick = { onCopy("شماره شبا", card.iban) }
                         )
                     }
@@ -488,30 +492,33 @@ private fun CopyChipButton(
     label: String,
     value: String,
     testTag: String,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-        modifier = Modifier.testTag(testTag)
+        modifier = modifier.testTag(testTag)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 7.dp)
         ) {
             Icon(
                 imageVector = Icons.Outlined.ContentCopy,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(13.dp)
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(3.dp))
             Text(
                 text = "کپی $label",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                maxLines = 1
             )
         }
     }

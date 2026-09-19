@@ -13,6 +13,9 @@ interface BankCardDao {
     @Query("SELECT * FROM bank_cards ORDER BY updatedAt DESC")
     fun getAllCards(): Flow<List<BankCard>>
 
+    @Query("SELECT * FROM bank_cards ORDER BY updatedAt DESC")
+    suspend fun getAllCardsList(): List<BankCard>
+
     @Query("SELECT * FROM bank_cards WHERE isPersonal = :isPersonal ORDER BY updatedAt DESC")
     fun getCardsByType(isPersonal: Boolean): Flow<List<BankCard>>
 
