@@ -32,5 +32,12 @@ class ExampleRobolectricTest {
 
     val plainFormatted = com.example.util.BankUtils.formatCardNumberPlain("1705606118280062")
     assertEquals("1705 - 6061 - 1828 - 0062", plainFormatted)
+
+    // Test bank resolution by name
+    val pasargad = com.example.util.BankUtils.getBankByName("پاسارگاد")
+    assertEquals("502229", pasargad.code)
+
+    val blu = com.example.util.BankUtils.getBankByName("بلو")
+    assertEquals("861980", blu.code)
   }
 }

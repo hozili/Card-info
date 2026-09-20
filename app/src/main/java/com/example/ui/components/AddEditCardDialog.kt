@@ -191,12 +191,21 @@ fun AddEditCardDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // 2. Bank Name
+                val currentBankInfo = remember(cardNumber, bankName) {
+                    val detected = BankUtils.detectBankFromCardNumber(cardNumber)
+                    if (detected.code != "000000") detected else BankUtils.getBankByName(bankName)
+                }
+
                 OutlinedTextField(
                     value = bankName,
                     onValueChange = { bankName = it },
                     label = { Text("نام بانک") },
                     leadingIcon = {
-                        Icon(Icons.Default.AccountBalance, contentDescription = null)
+                        if (bankName.isNotEmpty() || cardNumber.length >= 6) {
+                            BankLogoMini(bankInfo = currentBankInfo, size = 24.dp)
+                        } else {
+                            Icon(Icons.Default.AccountBalance, contentDescription = null)
+                        }
                     },
                     singleLine = true,
                     modifier = Modifier
@@ -204,7 +213,7 @@ fun AddEditCardDialog(
                         .testTag("bank_name_input")
                 )
 
-                // Quick bank selection chips
+                // Quick bank selection chips with mini logos
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -213,9 +222,13 @@ fun AddEditCardDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     quickBanks.forEach { bName ->
+                        val bInfo = remember(bName) { BankUtils.getBankByName(bName) }
                         FilterChip(
                             selected = bankName == bName,
                             onClick = { bankName = bName },
+                            leadingIcon = {
+                                BankLogoMini(bankInfo = bInfo, size = 16.dp)
+                            },
                             label = { Text(bName, fontSize = 11.sp) }
                         )
                     }

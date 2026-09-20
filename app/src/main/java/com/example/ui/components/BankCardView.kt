@@ -118,28 +118,32 @@ fun BankCardItem(
                     )
                 }
 
+                // Subtle bank logo watermark in background
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .padding(end = 10.dp, bottom = 8.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    BankLogoWatermark(
+                        bankInfo = bankInfo,
+                        modifier = Modifier.size(115.dp),
+                        alpha = 0.08f
+                    )
+                }
+
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Header: Bank Name & Category Tag
+                    // Header: Bank Logo, Bank Name & Category Tag
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color.White.copy(alpha = 0.2f),
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.CreditCard,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
+                            BankLogoBadge(
+                                bankInfo = bankInfo,
+                                size = 38.dp
+                            )
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
