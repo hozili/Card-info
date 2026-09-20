@@ -36,7 +36,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -259,20 +262,34 @@ fun BankCardItem(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // 16-digit Card Number Display (formatted 4x4)
-                    val formattedNumber = BankUtils.formatCardNumber(card.cardNumber)
-                    Text(
-                        text = if (formattedNumber.isNotEmpty()) formattedNumber else "----  ----  ----  ----",
-                        color = Color.White,
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 1.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    )
+                    // 16-digit Card Number Display (Strict LTR 4x4 layout: e.g. 1705 6061 1828 0062)
+                    val cardChunks = BankUtils.getCardNumberChunks(card.cardNumber)
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            cardChunks.forEachIndexed { index, chunk ->
+                                if (index > 0) {
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                }
+                                Text(
+                                    text = chunk,
+                                    color = Color.White,
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    letterSpacing = 1.5.sp,
+                                    style = androidx.compose.ui.text.TextStyle(
+                                        textDirection = androidx.compose.ui.text.style.TextDirection.Ltr
+                                    )
+                                )
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(14.dp))
 

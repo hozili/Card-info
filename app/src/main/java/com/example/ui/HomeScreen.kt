@@ -123,63 +123,6 @@ fun HomeScreen(
     var cardToDelete by remember { mutableStateOf<BankCard?>(null) }
     var showSecuritySettingsDialog by remember { mutableStateOf(false) }
 
-    // File selection state for secure backup
-    var pendingExportData by remember { mutableStateOf<String?>(null) }
-    var importedFileContent by remember { mutableStateOf<String?>(null) }
-    var importedFileName by remember { mutableStateOf<String?>(null) }
-    var backupErrorMessage by remember { mutableStateOf<String?>(null) }
-
-    // System file picker for creating/saving secure backup file locally
-    val createDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
-    ) { uri: Uri? ->
-        if (uri != null && pendingExportData != null) {
-            coroutineScope.launch {
-                try {
-                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                        outputStream.write(pendingExportData!!.toByteArray(Charsets.UTF_8))
-                        outputStream.flush()
-                    }
-                    pendingExportData = null
-                    snackbarHostState.showSnackbar("فایل پشتیبان با موفقیت و محرمانگی کامل در گوشی ذخیره شد")
-                } catch (e: Exception) {
-                    snackbarHostState.showSnackbar("خطا در ذخیره فایل: ${e.localizedMessage}")
-                }
-            }
-        }
-    }
-
-    // System file picker for importing secure backup file from device storage
-    val openDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            coroutineScope.launch {
-                try {
-                    var displayName = "فایل پشتیبان"
-                    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                        if (nameIndex != -1 && cursor.moveToFirst()) {
-                            displayName = cursor.getString(nameIndex)
-                        }
-                    }
-                    val content = context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                        inputStream.bufferedReader(Charsets.UTF_8).readText()
-                    }
-                    if (!content.isNullOrBlank()) {
-                        importedFileContent = content
-                        importedFileName = displayName
-                        snackbarHostState.showSnackbar("فایل $displayName آماده رمزگشایی است")
-                    } else {
-                        snackbarHostState.showSnackbar("فایل انتخاب شده خالی است")
-                    }
-                } catch (e: Exception) {
-                    snackbarHostState.showSnackbar("خطا در خواندن فایل پشتیبان: ${e.localizedMessage}")
-                }
-            }
-        }
-    }
-
     val categories = listOf("همه", "اصلی", "کاری", "خرید", "خانواده", "پس‌انداز", "سایر")
 
     // Helper for copying to clipboard
@@ -196,14 +139,20 @@ fun HomeScreen(
     val shareCard: (BankCard) -> Unit = { card ->
         val shareText = buildString {
             appendLine("اطلاعات کارت بانکی:")
-            appendLine("بانک: ${card.bankName}")
-            appendLine("به نام: ${card.holderName}")
-            appendLine("شماره کارت: ${BankUtils.formatCardNumber(card.cardNumber)}")
+            if (card.bankName.isNotEmpty()) {
+                appendLine("بانک: ${card.bankName}")
+            }
+            if (card.holderName.isNotEmpty()) {
+                appendLine("به نام: ${card.holderName}")
+            }
+            appendLine("شماره کارت:")
+            appendLine(BankUtils.formatCardNumber(card.cardNumber))
             if (card.accountNumber.isNotEmpty()) {
                 appendLine("شماره حساب: ${card.accountNumber}")
             }
             if (card.iban.isNotEmpty()) {
-                appendLine("شماره شبا: ${BankUtils.formatIban(card.iban)}")
+                appendLine("شماره شبا:")
+                appendLine(BankUtils.formatIban(card.iban))
             }
         }
         val sendIntent = Intent().apply {
@@ -583,16 +532,13 @@ fun HomeScreen(
         )
     }
 
-    // Security Settings & Encrypted Backup Dialog
+    // Security Settings Dialog
     if (showSecuritySettingsDialog) {
         SecuritySettingsDialog(
             securityPrefs = viewModel.securityPrefs,
             isBiometricAvailable = isBiometricAvailable,
             onDismiss = {
                 showSecuritySettingsDialog = false
-                importedFileContent = null
-                importedFileName = null
-                backupErrorMessage = null
             },
             onSaveMode = { mode, newPin ->
                 viewModel.updateSecuritySettings(mode, newPin)
@@ -600,53 +546,7 @@ fun HomeScreen(
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("تنظیمات امنیت با موفقیت ذخیره شد")
                 }
-            },
-            onExportBackup = { password ->
-                coroutineScope.launch {
-                    try {
-                        backupErrorMessage = null
-                        val encryptedBackup = viewModel.exportEncryptedBackup(password)
-                        pendingExportData = encryptedBackup
-                        // Also automatically save a backup to internal private app storage as an extra safety layer
-                        val internalFileName = "cards_backup_${System.currentTimeMillis()}.enc"
-                        context.openFileOutput(internalFileName, Context.MODE_PRIVATE).use { output ->
-                            output.write(encryptedBackup.toByteArray(Charsets.UTF_8))
-                        }
-                        // Launch system file saver so user chooses their desired secure local storage location
-                        val defaultFileName = "bank_cards_backup_${System.currentTimeMillis()}.enc"
-                        createDocumentLauncher.launch(defaultFileName)
-                    } catch (e: Exception) {
-                        val errMsg = "خطا در آماده‌سازی پشتیبان: ${e.localizedMessage}"
-                        backupErrorMessage = errMsg
-                        snackbarHostState.showSnackbar(errMsg)
-                    }
-                }
-            },
-            onSelectBackupFile = {
-                backupErrorMessage = null
-                openDocumentLauncher.launch(arrayOf("*/*"))
-            },
-            onImportBackup = { backupJson, password ->
-                coroutineScope.launch {
-                    backupErrorMessage = null
-                    val result = viewModel.importEncryptedBackup(backupJson, password)
-                    if (result.isSuccess) {
-                        val count = result.getOrNull() ?: 0
-                        showSecuritySettingsDialog = false
-                        importedFileContent = null
-                        importedFileName = null
-                        backupErrorMessage = null
-                        snackbarHostState.showSnackbar("$count کارت با موفقیت بازیابی شد")
-                    } else {
-                        val err = result.exceptionOrNull()?.localizedMessage ?: "رمز عبور اشتباه است یا فایل دستکاری شده"
-                        backupErrorMessage = "خطا در بازیابی: $err"
-                        snackbarHostState.showSnackbar("خطا در بازیابی: $err")
-                    }
-                }
-            },
-            importedFileContent = importedFileContent,
-            importedFileName = importedFileName,
-            backupErrorMessage = backupErrorMessage
+            }
         )
     }
 }

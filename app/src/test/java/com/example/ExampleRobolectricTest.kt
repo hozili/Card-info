@@ -27,7 +27,10 @@ class ExampleRobolectricTest {
     val mellat = com.example.util.BankUtils.detectBankFromCardNumber("6104331234567890")
     assertEquals("بانک ملت", mellat.name)
 
-    val formatted = com.example.util.BankUtils.formatCardNumber("6037991234567890")
-    assertEquals("6037  -  9912  -  3456  -  7890", formatted)
+    val chunks = com.example.util.BankUtils.getCardNumberChunks("1705606118280062")
+    assertEquals(listOf("1705", "6061", "1828", "0062"), chunks)
+
+    val plainFormatted = com.example.util.BankUtils.formatCardNumberPlain("1705606118280062")
+    assertEquals("1705 - 6061 - 1828 - 0062", plainFormatted)
   }
 }

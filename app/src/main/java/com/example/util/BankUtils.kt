@@ -69,15 +69,44 @@ object BankUtils {
     }
 
     /**
-     * Formats 16 digits into: 1234 - 5678 - 9012 - 3456
+     * Splits 16-digit card number into 4 groups (e.g. ["1705", "6061", "1828", "0062"])
+     * Always returns 4 chunks for consistent LTR UI rendering.
      */
-    fun formatCardNumber(rawNumber: String): String {
+    fun getCardNumberChunks(rawNumber: String): List<String> {
         val digits = normalizeDigits(rawNumber).filter { it.isDigit() }.take(16)
-        return digits.chunked(4).joinToString("  -  ")
+        if (digits.isEmpty()) return listOf("----", "----", "----", "----")
+        val chunks = digits.chunked(4).toMutableList()
+        while (chunks.size < 4) {
+            chunks.add("----")
+        }
+        return chunks
     }
 
     /**
-     * Formats IBAN / Sheba: IR12 - 3456 - 7890 - 1234 - 5678 - 9012 - 34
+     * Formats 16 digits into: 1705 - 6061 - 1828 - 0062
+     * Protected with LRM (\u200E) around delimiters so that in RTL environments (Persian/Arabic)
+     * and when sharing via messengers, the chunks are strictly ordered from left to right:
+     * e.g. 1705 - 6061 - 1828 - 0062 and NEVER reversed to 0062 - 1828 - 6061 - 1705.
+     */
+    fun formatCardNumber(rawNumber: String): String {
+        val digits = normalizeDigits(rawNumber).filter { it.isDigit() }.take(16)
+        if (digits.isEmpty()) return ""
+        val chunks = digits.chunked(4)
+        return "\u200E" + chunks.joinToString("\u200E - \u200E") + "\u200E"
+    }
+
+    /**
+     * Plain format without invisible LTR control characters
+     */
+    fun formatCardNumberPlain(rawNumber: String): String {
+        val digits = normalizeDigits(rawNumber).filter { it.isDigit() }.take(16)
+        if (digits.isEmpty()) return ""
+        return digits.chunked(4).joinToString(" - ")
+    }
+
+    /**
+     * Formats IBAN / Sheba: IR12 3456 7890 1234 5678 9012 34
+     * Protected with LRM to prevent visual flipping in Persian RTL context.
      */
     fun formatIban(rawIban: String): String {
         var clean = normalizeDigits(rawIban).uppercase().filter { it.isLetterOrDigit() }
@@ -85,7 +114,7 @@ object BankUtils {
             clean = clean.removePrefix("IR")
         }
         val chunks = clean.take(24).chunked(4)
-        return if (chunks.isNotEmpty()) "IR " + chunks.joinToString(" ") else ""
+        return if (chunks.isNotEmpty()) "\u200EIR " + chunks.joinToString(" ") + "\u200E" else ""
     }
 
     fun getBankGradient(bankInfo: BankInfo): Brush {
